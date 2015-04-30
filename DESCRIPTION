@@ -11,6 +11,7 @@ LazyData: true
 Import: plyr,
         dplyr,
         ggplot2,
-        XML
+        XML,
+        shiny
 Suggests: knitr
 VignetteBuilder: knitr
