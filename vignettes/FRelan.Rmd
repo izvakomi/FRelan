@@ -1,0 +1,198 @@
+---
+title: "FRelan vignette"
+author: "Niko Partanen"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+FRelan package has been developed in Freiburg within the research project Izhva Komi Language Documentation, which has been funded by Kone Foundation in 2014-2016. The package can be used to parse ELAN files into a data frame, for which it is easy to perform different operations in R. Shiny corpus application FRorpus is integrated into FRelan, yet purposedly in rather limited form. This is done in order to maximize the compatibility with different data. FRelan is immediately compatible with the ELAN files we work with in Freiburg (Iźva Komi, Kildin Saami, Skolt Saami, Pite Saami), but demands some modifications to the arguments when used with ELAN files that have different structure. Besides ELAN files, there is a simple function to read text files into similar dataframe as which would result from read_eaf() function. It seems to be the case that Python is currently more advanced with Natural Language Processing than R, but there are still many operations we may want to perform or test in R environment as well. There are projects such as rPython and rpy which allow moving functions and data between these languages. Thus the roles of R and Python in linguistic research should be seen primarily as complementary.
+
+### What FRelan does?
+
+As FRelan is in active development phase many functions are still somewhat limited. They focus currently to:
+
+- Parsing whole ELAN corpus into one data frame
+- Diagnosing malformed ELAN files
+
+In addition to these tasks it does some rudimentary:
+
+- Visualizing the content of ELAN files
+- Allows some interaction with ELAN files from R
+
+There are many functions that have been planned and which are maybe already rudimentarily tested, but which are not ready for more public distribution. Also some tools are so Komi dialectology specified that it is hard to see any more general use for them right now.
+
+The main goal in developing the package has been to minimize exporting ELAN data to CSV in order to read them into R.
+
+## Diagnosing malformed ELAN files
+
+ELAN XML files are structurally valid XML files. However, if we want to use ELAN files as a corpus, we must assume that all data is structured in an uniform way. If there are structural differences, they must be explicitly stated and taken into account while making searches. I've encountered several reasons why some ELAN files end up being malformed, but the most commonly this is related to changes from one tier structure into another. These malformations may come in different forms:
+
+- Wrongly named linguistic types
+- Misspelled or empty PARTICIPANT tags
+- Non-coherent hierarchy between tiers
+
+These issues may not come up in normal ELAN searches, but when we parse ELAN XML into R or combine ELAN data with the metadata, it becomes very likely that these inconsistencies produce errors. In R environment they almost always come out as very visible errors, which, despite annoying, can also easily lead us to right tracks in eliminating the problems.
+
+For now in this vignette I assume that all ELAN files are structurally coherent. I would advice a new user to take two "best" ELAN files and start with parsing them. It is very unlikely that parsing a very large amount of ELAN files at once would be immediately succesfull. However, it should be possible to modify the function `read_eaf()` so that it works with several well structured ELAN files.
+
+To make this easier FRelan comes with example ELAN files which display the most characteristic structural issues I've encountered in my work.
+
+## Function: read_eaf()
+
+The main function in FRelan package is `read_eaf()`. With ELAN files associated to the Freiburg Research Group in Saami Studies it is possible to use it with no arguments besides the folder from which the function searches.
+
+```{r corpus1, warning = FALSE, message = FALSE, cache = TRUE}
+library(FRelan)
+corpus1 <- FRelan::read_eaf(path = "../data/kpv_izva/")
+corpus1 %>% dplyr::select(Session_name, Token)
+```
+
+This vignette attemps to describe the argument structure of this function, modifying which we can (in theory) adapt it to many different tier structures.
+
+The earlier command could have been written also in a following manner, stating each argument explicitly:
+
+```{r corpus2, warning = FALSE, message = FALSE, cache = TRUE}
+library(FRelan)
+corpus2 <- FRelan::read_eaf(path = "../data/kpv_izva", 
+                    eaf.list = FALSE, 
+                    pattern = ".eaf$", 
+                    tokenization = TRUE, 
+                    ind.tier = "refT", 
+                    SA.tier = "orthT", 
+                    SS.tier = "wordT", 
+                    ft = FALSE, 
+                    ignore = FALSE)
+corpus2 %>% dplyr::select(Session_name, Token)
+```
+
+We can test whether the results are identical, they naturally should be: `identical(corpus1, corpus2)` returns us `r identical(corpus1, corpus2)`. **Note: Figure out where is the problem!**
+
+But before we get to the function arguments let's take a look into what the function returned us. The majority of the fields can't be observed at once, but this is not very necessary either as we can easily pick up the fields we are interested about. We get really far with `Session name`, `informant` and `token`. However, in principle we should be able to retrieve and use all information that is in the ELAN files.
+
+`Orth` contains the utterance level segments from the ELAN files. `Time_start` and `Time_end` are the time slots of those utterances. In two last columns they are also in hour-minute-second format.
+
+`Token` contains the tokenized words, but in a form that is all in lowercase. Original uppercase forms are under the column `Word`. Columns `Before` and `After` have the immediate context of each token. Naturally these should be recalculated depending from the question under investigation.
+
+`Session_name` has been derived from `Filename`. The assumption is that the filename without .eaf ending corresponds with the session name in metadata and elsewhere. `Filename` contains the full path to the file on your computer, which may not be useful to look at, but can be used, as an example, when opening ELAN files from within R.
+
+`Variant` column is generated with the assumption that the beginning of the filenames contains a piece of information that broadly corresponds with language or dialect under investigation. If you have a different system, please modify the function or just delete this column. In our current filename system the following definition is used:
+
+    isocode_dialectYEARMONTHDATE-NUMBERtag
+
+This way it is immediately clear when the session was recorded, which variety of which language it is in and which session it was on that day. The `tag` part in the end of the session name is a simple mnemonic device which helps to orientate oneself with a large number of sessions. As an example, if the tag would be *horse_farm* one could open the file with a simple command:
+
+    open_eaf("horse_farm")
+
+One can easily see advantage this tag gives between session names:
+
+    kpv_izva20150408-1
+    kpv_izva20150408-1horse_farm
+
+Naturally this tag element could be also part of the metadata and not fixed to the session names. However, it is also clear that eventually humans are using this corpus and we may benefit from mnemonic cues scattered around. Of course one could also write:
+
+    open_eaf("20150408-1")
+
+But I find that cumbersome in practise.
+
+## Example 1: Simple and complex searches
+
+I'm personally very accustomed to use R with dplyr package. I know the traditional R syntax, but it is very clear that with dplyr syntax it will be easier to get new people to use R, simply because it is so much easier to read and write. FRelan package reflects this idea, and returns the data frame as a *local data frame*, which is preferred data structure for dplyr package.
+
+We can start by compiling the corpus.
+
+```{r compiling_corpus, warning = FALSE, message = FALSE, cache = TRUE}
+library(FRelan)
+library(dplyr)
+`%>%` <- dplyr::`%>%`
+
+corpus_kpv <- FRelan::read_eaf(path = "../data/kpv_izva")
+corpus_kpv %>% dplyr::select(Session_name, Speaker, Token, Variant)
+```
+
+
+If corpus several hundreds of thousands of words it may take up to a minute that it is parsed. With 140 000 tokens Komi corpus it takes roughly 40 seconds. It probably makes sense to save your corpus as a .rda object and just load it instead of parsing it all the time again. Now I parsed a small subset of Udora dialect, which is much smaller, only `r nrow(corpus_kpv)` tokens.
+
+Once the corpus is parsed we can start to make searches into it. Just to have an example, it is known from grammatical descriptions that Iźva dialect of Komi language has particular first person plural possessive suffixe that ends with -нум instead of standard -ным.
+
+```{r search_something, warning = FALSE, message = FALSE, cache = TRUE}
+corpus_kpv %>%
+        select(Speaker, Token, Variant) %>%
+        filter(grepl(".+н(ы|у)м$", Token)) %>%
+        arrange(Token)
+```
+
+But I always fount myself typing the same `filter(grepl("regex", Token))`. This is why I wrapped it into `find_token()` function.
+
+```{r search_easier, warning = FALSE, message = FALSE, cache = TRUE}
+corpus_kpv %>%
+        select(Speaker, Token, Variant) %>%
+        find_token(".+н(ы|у)м$") %>%
+        arrange(Token)
+```
+
+## open_eaf()
+
+This function takes as an argument a row from the dataframe and sends to Terminal a command to open the associated ELAN file. This is the only function in FRelan package which at the moment writes something into your data. it works by modifying .pfsx files on the spot before opening the ELAN file. This is a very useful function, as we often want to access quickly the files in which we have some issues or hits. As an example, one may spot a typo in some of the transcriptions. The best approach is to open file instantly and fix it. Naturally there are more complicated cases when the question is not so much about fixing something, but having a different interpretation of what is being said. However, even then you may want to access the ELAN file to add something to note tier or somewhere.
+
+As an example, here we are searching for comitative case **-кӧд**.
+
+```{r, warning = FALSE, message = FALSE, evaluate = FALSE}
+corpus_kpv %>% find_token("^.+к(ӧ|е)д") %>% select(Session_name, Token, Speaker)
+```
+
+If we think, as an example, that the example on line 10 is particularly interesting, we could just add to the pipe `%>% open_eaf(10)`. At least on Mac computers, this opens the ELAN file from the utterance in which this token is located. You can also specify which program to use: `%>% open_eaf(10, program = "Textmate")`.
+
+Without the program specified the ELAN file is opened with the program your system has associated with `.eaf` files. If you don't specify the row, then the file on the first row is opened. It is then impossible to open accidentally tens or hundreds of files. (You can of course write a loop that does that, but that is not accidental anymore!)
+
+Function `open_eaf()` works only if you have compiled the corpus on the same computer you are analyzing it. This is simply because otherwise the `Filename` probably does not refer to the right locations.
+
+## Merging with metadata
+
+The possibilities are very limited when we work only with raw ELAN data. Of course we can have a fair amount of metadata in ELAN files already, but I don't think that makes sense in the long run. Actually I like the idea of having ELAN files relatively metadataless, as then we can more safely distribute them to different users and select ourselves which portions of metadata can be given to which use. To do anything like this we need to be able to combine the utterances and tokens into metadata. This can be done by using two fields: `ActorID` and `Session_name`. Each speaker has an unique ID, and each session has a unique name. Some metadata is actor specific, some is session specific. Some metadata makes sense only in conjunction with the both of these. As an example, `birthdate` or `birthplace` are something distinct for each actor. Attributes like `profession` are already more complicated, as they tend to change during individuals lifetime and one person often holds several professions. Metadatawise this gets very complicated, but let's not go into that now.
+
+Attributes like `recording time` or `recording place` on the other hand are specific for each session. Each individual may appear on different recordings in different times and places, so there is nothing that inherently connects one individual into some recording. The same is true with `role`. Especially when we work with native speakers it is very common that same person is at times *interviewer*, another time *informant*, some times *transcriber*, in some projects a *supervisor*. Thereby the `actor role` is not a kind of variable which we can store outside immediate connection to the actor in specific recording session.
+
+There are also metadata items which we can always compute from others. `Age` is something like this. We can always derive the `age` if we know `birthtime` and `recording time`. Derived values like this should not be stored in metadata, at least if entered by humans.
+
+It is common to save metadata in IMDI or CMDI format. To this day we have no really usable editor for these metadata formats, so in Freiburg we usually have stored the data in Filemaker databases and exported those into IMDI. Now we are moving slowly into CMDI, but it is still unclear for me if any sensible solutions for working with CMDI have appeared. If you have managed to store your metadata into IMDI or CMDI, it is no problem to read that into R. However, I will not explain this in this vignette, but assume you have some solution to read your metadata. Once we have CMDI running smoothly in Freiburg I'll probably add a function into FRelan which parses CMDI in same way as `read_eaf()` parses ELAN files.
+
+In practice it seems to be the most convenient solution not to have different systems for foreign researchers and native speakers, as these concepts and different possible roles are not that straightforward. So we have them all in same database, but there is an attribute `Attr_foreign` which gets values `TRUE` or `FALSE`. Now we can simply throw away the foreign researchers as we like. Code below shows how we can use `dplyr::filter` function to filter out tokens produced by foreign researchers, category which has been in the end rather arbitrarily decided but explicitly problematized.
+
+## What is a well structured ELAN file?
+
+By a well structured ELAN file I mean something along these lines:
+
+    reference
+      transcription on utterance level
+        tokenization to word level
+          pos
+          gloss
+          lemma
+        free translation: Russian
+        free translation: English
+
+The underlying constellation of linguistic types if as follows:
+
+    Independent tier: refT
+      Symbolic association to the independent tier:     orthT
+        Symbolic subdivision to the transcription tier: wordT
+          Symbolic subdivision to the tokenized tier:   posT
+          Symbolic subdivision to the tokenized tier:   morphT
+          Symbolic subdivision to the tokenized tier:   lemmaT
+        Symbolic association to the transcription tier: ft-rusT
+        Symbolic association to the transcription tier: ft-engT
+
+Naturally other constellations are possible and often well reasoned. The most common divergences from this type are probably:
+
+- No reference tier, but orthography / transcription directly on the first independent tier
+- No tokenization in the ELAN files
+
+With FRelan package it is also assumed that each tier has `participant` tag filled. Participant is often defined also in the tier names, but I would treat this as more secondary place for storing this information.
+
+It is also assumed that each distinct data category has its own linguistic type. So all tiers that contain English translation have their own linguistic type, as an example, `ft-eng`. Similarly, the Russian translation would be `ft-rus`. There is no place for linguistic type such as `free_translation`, just because the level of abstraction would then be one level too high.
+
+It is also not uncommon that ELAN files have no internal structure whatsoever.
