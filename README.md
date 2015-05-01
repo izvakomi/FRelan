@@ -20,7 +20,7 @@ To cite package ‘FRelan’ in publications use:
 A BibTeX entry for LaTeX users is
 
   @Manual{,
-    title = {FRelan: Analyse and diagnose ELAN files},
+    title = {FRelan: Parse and analyse ELAN files},
     author = {Niko Partanen},
     year = {2015},
     note = {R package version 0.1},
