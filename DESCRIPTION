@@ -1,5 +1,5 @@
 Package: FRelan
-Title: Analyse and diagnose ELAN files
+Title: Parse and analyze ELAN files
 Version: 0.1
 Authors@R: c(person("Niko", "Partanen", , "nikotapiopartanen@gmail.com", role = c("aut", "cre")),
            person("Kone Foundation", , "www.koneensaatio.fi/en/", role = c("fnd")))
