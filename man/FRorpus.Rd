@@ -4,7 +4,7 @@
 \alias{FRorpus}
 \title{FRorpus Function}
 \usage{
-FRorpus(corpus)
+FRorpus(corpus, c1 = "Before", c2 = "Token", c3 = "After", c4 = FALSE)
 }
 \arguments{
 \item{corpus}{The corpus file}

@@ -7,7 +7,7 @@
 #' @examples
 #'find_token(".+лаздор.?")
 
-FRorpus <- function(corpus) {
+FRorpus <- function(corpus, c1 = "Before", c2 = "Token", c3 = "After", c4 = FALSE) {
 require(shiny)
 require(dplyr)
 
@@ -71,8 +71,11 @@ server = function(input, output) {
 #                 if (nrow(data) == nrow(corpus)){
 #                         regex_eng
 #                 } else {
-                        data %>% dplyr::arrange(Token) %>% dplyr::select(Before, Token, After)
-                # }
+                 if (c4 == FALSE){
+                data[,c(c1, c2, c3)] # dplyr::arrange(Token) %>% dplyr::select(columns)
+                 } else {
+                data[,c(c1, c2, c3, c4)]
+                 }
 
         }, options = list(
                 aoColumnDefs = list(

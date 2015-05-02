@@ -229,7 +229,8 @@ read_eaf <- function(path = ".", eaf.list = FALSE, pattern = "\\.eaf$", tokeniza
 
         if (tokenization == TRUE){
 
-        corpus <- corpus %>% dplyr::filter(! grepl("^$", Token))
+        corpus <- corpus %>% dplyr::filter(! grepl("^$", Token)) %>%
+                  dplyr::filter(! grepl("^ $", Token))
 
 # Let's also create an object that contains word forms as they were, as differentiated
 # from word tokens which I'll now take into lowercase.
