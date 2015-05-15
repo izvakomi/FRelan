@@ -7,7 +7,7 @@
 read_eaf(path = ".", eaf.list = FALSE, pattern = "\\\\.eaf$",
   tokenization = TRUE, ind.tier = "refT", ind.tier2 = FALSE,
   SA.tier = "orthT", SS.tier = "wordT", ft.tier = FALSE, ignore = FALSE,
-  recursive = FALSE)
+  recursive = FALSE, part = FALSE, ...)
 }
 \arguments{
 \item{path}{This is a path. Defaults to current directory.}
@@ -29,6 +29,8 @@ read_eaf(path = ".", eaf.list = FALSE, pattern = "\\\\.eaf$",
 \item{ignore}{Is there need to ignore some filenames? Default = FALSE. Expects regular expression as input.}
 
 \item{recursive}{Should the function search to all subfolders on the path? Default = FALSE.}
+
+\item{part}{In some files we have used tier partT in order to mark distinct sections. Default = FALSE.}
 }
 \description{
 The function reads ELAN files. Dummy tokens that contain no information are erased automatically. The function assumes that all tiers have participant attributes filled and that they contain at least one token. In actual use the biggest problems are connected to structural irregularity of ELAN files in corpus. It is used ideally in connection with scripts that are able to parse IMDI or CMDI files. If the function worked earlier but now gives errors, please use `log_eaf()` function to see which files have been changed recently.

@@ -11,12 +11,13 @@
 #' @param ft.tier What is the name of the free translation tier? Default is FALSE.
 #' @param ignore Is there need to ignore some filenames? Default = FALSE. Expects regular expression as input.
 #' @param recursive Should the function search to all subfolders on the path? Default = FALSE.
+#' @param part In some files we have used tier partT in order to mark distinct sections. Default = FALSE.
 #' @keywords ELAN linguistics
 #' @export
 #' @examples
 #' read_eaf(path = "corpora/kpv/", ind.tier = "refT", SA.tier = "orthT", SS.tier = "wordT", recursive = TRUE)
 
-read_eaf <- function(path = ".", eaf.list = FALSE, pattern = "\\.eaf$", tokenization = TRUE, ind.tier = "refT", ind.tier2 = FALSE, SA.tier = "orthT", SS.tier = "wordT", ft.tier = FALSE, ignore = FALSE, recursive = FALSE){
+read_eaf <- function(path = ".", eaf.list = FALSE, pattern = "\\.eaf$", tokenization = TRUE, ind.tier = "refT", ind.tier2 = FALSE, SA.tier = "orthT", SS.tier = "wordT", ft.tier = FALSE, ignore = FALSE, recursive = FALSE, part = FALSE, ...){
 
         if (eaf.list == FALSE) {
         xmlfiles <- list.files(path, pattern, recursive = recursive, full.names = TRUE, include.dirs = TRUE)
@@ -27,7 +28,7 @@ read_eaf <- function(path = ".", eaf.list = FALSE, pattern = "\\.eaf$", tokeniza
 
         }
 
-        if (eaf.list == TRUE) {
+        if (eaf.list != FALSE) {
                 xmlfiles <- eaf.list
         }
 
@@ -111,7 +112,21 @@ read_eaf <- function(path = ".", eaf.list = FALSE, pattern = "\\.eaf$", tokeniza
 
         }
 
+if (part != FALSE){
+        for(i in 1:n){
+                doc <- XML::xmlTreeParse(xmlfiles[i], useInternalNodes = TRUE)
+                nodes <- XML::getNodeSet(doc, path = paste0('//TIER[@LINGUISTIC_TYPE_REF=', "'", part, "'", ']'))
+                x <- lapply(nodes, function(x){ data.frame(
+                        Filename = xmlfiles[i],
+                        TS1 = XML::xpathSApply(x, ".//ANNOTATION/ALIGNABLE_ANNOTATION" , XML::xmlGetAttr, "TIME_SLOT_REF1"),
+                        PartID = XML::xpathSApply(x, ".//ANNOTATION/ALIGNABLE_ANNOTATION/ANNOTATION_VALUE" , XML::xmlValue),
+                                stringsAsFactors = FALSE )})
+                        dat[[i]] <- do.call("rbind", x)
+                }
 
+                corpus.part <- dplyr::tbl_df(do.call("rbind", dat))
+
+}
 
         if (ft.tier != FALSE){
                 for(i in 1:n){
@@ -148,6 +163,7 @@ read_eaf <- function(path = ".", eaf.list = FALSE, pattern = "\\.eaf$", tokeniza
                 corpus <- dplyr::left_join(corpus, corpus.refT)
         }
 
+
         if (tokenization == FALSE && ft.tier != FALSE){
                 corpus <- dplyr::left_join(corpus.orthT, corpus.ft)
                 corpus <- dplyr::left_join(corpus, corpus.refT)
@@ -161,6 +177,7 @@ read_eaf <- function(path = ".", eaf.list = FALSE, pattern = "\\.eaf$", tokeniza
         if (tokenization == FALSE && ft.tier == FALSE && ind.tier2 == FALSE){
                 corpus <- dplyr::left_join(corpus.orthT, corpus.refT)
         }
+
 
         `%>%` <- dplyr::`%>%`
 
@@ -193,6 +210,15 @@ read_eaf <- function(path = ".", eaf.list = FALSE, pattern = "\\.eaf$", tokeniza
                 dplyr::left_join(corpus.TS) %>%
                 dplyr::rename(Time_start = Time)
 
+
+        if (part != FALSE){
+                part.TS <- corpus.part %>%
+                        dplyr::left_join(corpus.TS) %>%
+                        dplyr::rename(Time_start = Time)
+                part.TS <- part.TS %>% select(-TS1)
+                corpus <- dplyr::left_join(corpus, part.TS)
+        }
+
         corpus <- corpus %>%
                 dplyr::select(-TS1) %>%
                 dplyr::rename(TS1 = TS2) %>%
@@ -201,6 +227,7 @@ read_eaf <- function(path = ".", eaf.list = FALSE, pattern = "\\.eaf$", tokeniza
 
         corpus$Time_start <- as.numeric(as.character(corpus$Time_start))
         corpus$Time_end <- as.numeric(as.character(corpus$Time_end))
+
 
         corpus <- corpus %>%
                 dplyr::select(-TS1, -RefID, -OrthID, -Ref)
@@ -319,7 +346,7 @@ corpus$Before <- before
 
 # backup <- corpus
 
-        corpus$Frequency <- (corpus$Wordcount / nrow(corpus))
+ #       corpus$Frequency <- (corpus$Wordcount / nrow(corpus))
         }
 #
 
@@ -334,6 +361,7 @@ corpus$Before <- before
 
         corpus$Time_start_hms <- format(as.POSIXct(Sys.Date())+corpus$Time_start/1000, "%M:%S")
         corpus$Time_end_hms <- format(as.POSIXct(Sys.Date())+corpus$Time_end/1000, "%M:%S")
-        corpus %>% dplyr::select(Session_name, Before, Token, After, Speaker, Variant, Time_start, Time_end, Time_start_hms, Time_end_hms, Word, Frequency, Order, Orth, Filename)
+#        corpus %>% dplyr::select(Session_name, Before, Token, After, Speaker, Variant, Time_start, Time_end, Time_start_hms, Time_end_hms, Word, Frequency, Order, Orth, Filename)
+        corpus
 }
 
