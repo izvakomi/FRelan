@@ -1,3 +1,7 @@
+## Notification
+
+There is a new fork of this repository in the address [github.com/langdoc/FRelan](github.com/langdoc/FRelan). I think I will split this project into two, so that one under **izvakomi** would be very deeply connected to the data we work with in Freiburg, being then more like a testground for what could be done. Naturally, there are all kinds of daily tasks which are relevant for our work, but as such may not be very useful in other contexts, unless they would be in somewhat abstracted form. Once I start to introduce some not-so-ready and project specific features, I probably name this into FRelan-dev or something to keep it separated from the "stable" version which is in LangDoc account.
+
 ## FRelan
 
 This is a GitHub repository for R package FRelan. It is still in very active development and may still change radically. The biggest upcoming change is shifting from XML package to xml2. This should give significant gains in performance, which, currently, is a small problem with large corpora (>100.000 tokens in ELAN files takes around one minute to parse).
